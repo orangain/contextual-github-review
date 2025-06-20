@@ -1,0 +1,71 @@
+.blame-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 4px;
+  background-color: rgba(175, 184, 193, 0.1);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #656d76;
+}
+
+.blame-commit a {
+  color: #0969da;
+  text-decoration: none;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-weight: 500;
+}
+
+.blame-commit a:hover {
+  text-decoration: underline;
+}
+
+.blame-author {
+  font-weight: 500;
+  color: #24292f;
+}
+
+.blame-date {
+  color: #656d76;
+  font-size: 10px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .blame-info {
+    background-color: rgba(110, 118, 129, 0.1);
+    color: #8b949e;
+  }
+  
+  .blame-commit a {
+    color: #58a6ff;
+  }
+  
+  .blame-author {
+    color: #f0f6fc;
+  }
+  
+  .blame-date {
+    color: #8b949e;
+  }
+}
+
+/* GitHub dark theme */
+[data-color-mode="dark"] .blame-info {
+  background-color: rgba(110, 118, 129, 0.1);
+  color: #8b949e;
+}
+
+[data-color-mode="dark"] .blame-commit a {
+  color: #58a6ff;
+}
+
+[data-color-mode="dark"] .blame-author {
+  color: #f0f6fc;
+}
+
+[data-color-mode="dark"] .blame-date {
+  color: #8b949e;
+}
