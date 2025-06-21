@@ -6,18 +6,10 @@ class GitHubBlameViewer {
 
   init() {
     console.log('GitHub Blame Viewer initialized');
-    if (this.isPullRequestPage()) {
-      console.log('Pull request page detected, setting up observer');
-      // this.setupObserver();
-      this.processExistingDiffs();
-    }
-  }
-
-  isPullRequestPage() {
-    const isPR = window.location.pathname.includes('/pull/');
-    const hasDiffView = document.querySelector('.pr-review-tools, .diff-view, .diff-table, .js-diff-table');
-    console.log('PR page check:', { isPR, hasDiffView: !!hasDiffView });
-    return isPR && hasDiffView;
+    // We don't check for PR page here because GitHub uses pjax to load pages dynamically,
+    // so we need to observe all changes in the document body.
+    this.setupObserver();
+    this.processTree(document);
   }
 
   setupObserver() {
@@ -25,7 +17,8 @@ class GitHubBlameViewer {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            this.processFileContainer(node);
+            console.log('New node added:', node);
+            this.processTree(node);
           }
         });
       });
@@ -37,10 +30,10 @@ class GitHubBlameViewer {
     });
   }
 
-  processExistingDiffs() {
+  processTree(rootElement) {
     const repoInfo = this.extractRepoInfo();
     console.log('Processing existing diffs');
-    const fileContainers = document.querySelectorAll('.file');
+    const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
     fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
   }

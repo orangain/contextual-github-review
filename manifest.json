@@ -13,9 +13,15 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/pull/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
+      "matches": [
+        "https://github.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
     }
   ],
   "background": {
