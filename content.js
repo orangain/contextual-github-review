@@ -97,10 +97,12 @@ class GitHubBlameViewer {
       const lineBlame = this.findBlameForLine(blameData, lineNumber);
       console.log('Blame info for line:', lineBlame);
       if (lineBlame) {
-        const blameArea = this.addBlameInfoArea(row);
+        const blameArea = this.createBlameAreaElement(row);
         if (lineBlame.commitUrl !== lastLineBlame?.commitUrl) {
-          this.addBlameDisplay(blameArea, lineBlame);
+          const blameInfoElement = this.createBlameInfoElement(lineBlame);
+          blameArea.appendChild(blameInfoElement);
         }
+        this.addBlameArea(row, blameArea);
         return lineBlame;
       }
     } catch (error) {
@@ -167,22 +169,13 @@ class GitHubBlameViewer {
     };
   }
 
-  addBlameInfoArea(row) {
+  createBlameAreaElement() {
     const blameArea = document.createElement('div');
     blameArea.className = 'blame-area';
-
-    const lineCell = row.querySelector('.blob-num-addition');
-    if (lineCell) {
-      lineCell.appendChild(blameArea);
-      console.log('Added blame area to line:', lineCell);
-    } else {
-      console.warn('Could not find line cell for blame area');
-    }
-
     return blameArea;
   }
 
-  addBlameDisplay(blameArea, blameInfo) {
+  createBlameInfoElement(blameInfo) {
     const blameInfoElement = document.createElement('div');
     blameInfoElement.className = 'blame-info';
 
@@ -197,7 +190,17 @@ class GitHubBlameViewer {
     commitLink.textContent = blameInfo.messageHeadline;
     blameInfoElement.appendChild(commitLink);
 
-    blameArea.appendChild(blameInfoElement);
+    return blameInfoElement
+  }
+
+  addBlameArea(row, blameArea) {
+    const lineCell = row.querySelector('.blob-num-addition');
+    if (lineCell) {
+      lineCell.appendChild(blameArea);
+      console.log('Added blame area to line:', lineCell);
+    } else {
+      console.warn('Could not find line cell for blame area');
+    }
   }
 }
 
