@@ -183,10 +183,14 @@ class GitHubBlameViewer {
   }
 
   addBlameDisplay(blameArea, blameInfo) {
+    let title = `${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}`;
+    if (blameInfo.messageBody !== '') {
+      title += `\n\n${blameInfo.messageBody}`;
+    }
     const commitLink = document.createElement('a');
     commitLink.href = blameInfo.commitUrl;
     commitLink.target = '_blank';
-    commitLink.title = `${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}\n\n${blameInfo.messageBody}`;
+    commitLink.title = title;
     commitLink.textContent = blameInfo.messageHeadline;
     blameArea.appendChild(commitLink);
   }
