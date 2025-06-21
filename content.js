@@ -49,10 +49,10 @@ class GitHubBlameViewer {
       ...commitRefAndFileName,
     }
 
-    const diffRows = Array.from(container.querySelectorAll('.diff-table tr'))
+    const addedRows = Array.from(container.querySelectorAll('.diff-table tr'))
       .filter(row => this.extractLineNumberOfAddition(row) !== null);
-    console.log('Found diff rows:', diffRows.length);
-    if (diffRows.length === 0) {
+    console.log('Found diff rows:', addedRows.length);
+    if (addedRows.length === 0) {
       return;
     }
 
@@ -60,8 +60,8 @@ class GitHubBlameViewer {
     const blameData = await this.fetchBlameDataWithCache(fileInfo);
     console.log('Fetched blame data:', blameData);
 
-    diffRows.forEach(row => {
-      this.processDiffRow(row, blameData);
+    addedRows.forEach(row => {
+      this.processAddedRow(row, blameData);
     });
   }
 
@@ -80,14 +80,16 @@ class GitHubBlameViewer {
     return { commitRef, fileName };
   }
 
-  async processDiffRow(row, blameData) {
-    console.log('Processing diff row:', row);
+  async processAddedRow(row, blameData) {
+    console.log('Processing added row:', row);
     if (row.querySelector('.blame-info')) return;
 
     const lineNumber = this.extractLineNumberOfAddition(row);
-
     console.log('Extracted line number:', lineNumber);
-    if (!lineNumber) return;
+    if (!lineNumber) {
+      console.warn('No line number found for added row:', row);
+      return;
+    }
 
     try {
       const lineBlame = this.findBlameForLine(blameData, lineNumber);
@@ -103,7 +105,7 @@ class GitHubBlameViewer {
   extractLineNumberOfAddition(row) {
     const lineNumElement = row.querySelector('.blob-num-addition.js-linkable-line-number[data-line-number]');
     if (lineNumElement) {
-      const lineNumber = parseInt(lineNumElement.getAttribute('data-line-number'));
+      const lineNumber = parseInt(lineNumElement.getAttribute('data-line-number'), 10);
       return lineNumber;
     }
     return null;
