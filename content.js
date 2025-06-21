@@ -25,7 +25,7 @@ class GitHubBlameViewer {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            this.processDiffContainer(node);
+            this.processFileContainer(node);
           }
         });
       });
@@ -38,45 +38,61 @@ class GitHubBlameViewer {
   }
 
   processExistingDiffs() {
+    const repoInfo = this.extractRepoInfo();
     console.log('Processing existing diffs');
-    const diffContainers = document.querySelectorAll('.diff-table, .js-diff-table');
-    console.log('Found diff containers:', diffContainers.length);
-    diffContainers.forEach(container => this.processDiffContainer(container));
+    const fileContainers = document.querySelectorAll('.file');
+    console.log('Found file containers:', fileContainers.length);
+    fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
   }
 
-  processDiffContainer(container) {
-    console.log('Processing diff container:', container);
-    const diffRows = Array.from(container.querySelectorAll('tr')).filter(row => this.extractLineNumberOfAddition(row) !== null);
+  processFileContainer(repoInfo, container) {
+    console.log('Processing file container:', container);
+    const diffRows = Array.from(container.querySelectorAll('.diff-table tr')).filter(row => this.extractLineNumberOfAddition(row) !== null);
     console.log('Found diff rows:', diffRows.length);
-    const fileName = this.extractFileName(container);
-    console.log('Extracted file name:', fileName);
+    const { commitRef, fileName } = this.extractCommitRefAndFileName(repoInfo, container);
+    console.log('Extracted file name:', fileName, ' and commitRef:', commitRef);
+    const fileInfo = {
+      ...repoInfo,
+      fileName,
+      commitRef,
+    }
     if (fileName !== null) {
       diffRows.forEach(row => {
-        this.processDiffRow(row, fileName);
+        this.processDiffRow(row, fileInfo);
       });
     }
   }
 
-  extractFileName(container) {
-    const fileContainer = container.closest('.file[data-tagsearch-path]');
-    if (fileContainer) {
-      const fileName = fileContainer.getAttribute('data-tagsearch-path');
-      return fileName;
+  extractCommitRefAndFileName(repoInfo, container) {
+    const blobLinks = container.querySelectorAll('.dropdown a[href*="/blob/"]');
+    console.log('Found blob links:', blobLinks.length);
+    const blobLinkHrefs = Array.from(blobLinks).map(link => link.getAttribute('href'));
+    console.log('Found blob links:', blobLinkHrefs);
+    const regex = RegExp(`^/${repoInfo.owner}/${repoInfo.repo}/blob/([0-9a-f]{40})/(.*)$`);
+    const blobLinkMatches = blobLinkHrefs.map(href => regex.exec(href)).filter(match => match !== null);
+    const blobLinkMatch = blobLinkMatches.length > 0 ? blobLinkMatches[0] : null;
+    console.log('Blob link match:', blobLinkMatch);
+
+    if (!blobLinkMatch) {
+      return null;
     }
-    return null;
+    const commitRef = blobLinkMatch[1]; // Assuming the first capturing group is the commit ref
+    const fileName = blobLinkMatch[2]; // Assuming the second capturing group is the file name
+    console.log('Extracted commit ref and file name from blob link:', { commitRef, fileName });
+    return { commitRef, fileName };
   }
 
-  async processDiffRow(row, fileName) {
+  async processDiffRow(row, fileInfo) {
     console.log('Processing diff row:', row);
     if (row.querySelector('.blame-info')) return;
 
     const lineNumber = this.extractLineNumberOfAddition(row);
 
     console.log('Extracted line number:', lineNumber);
-    if (!lineNumber || !fileName) return;
+    if (!lineNumber) return;
 
     try {
-      const blameInfo = await this.getBlameInfo(fileName, lineNumber);
+      const blameInfo = await this.getBlameInfo(fileInfo, lineNumber);
       console.log('Blame info for line:', blameInfo);
       if (blameInfo) {
         this.addBlameDisplay(row, blameInfo);
@@ -96,38 +112,29 @@ class GitHubBlameViewer {
   }
 
 
-  async getBlameInfo(fileName, lineNumber) {
-    const repoInfo = this.extractRepoInfo();
-    if (!repoInfo) return null;
-    const commitRef = "main"; // TODO: 動的に取得する
-
-    const blameData = await this.fetchBlameDataWithCache(repoInfo, fileName, commitRef);
+  async getBlameInfo(fileInfo, lineNumber) {
+    const blameData = await this.fetchBlameDataWithCache(fileInfo);
     console.log('Fetched blame data:', blameData);
     const lineBlame = this.findBlameForLine(blameData, lineNumber);
     return lineBlame;
   }
 
-  async fetchBlameDataWithCache(repoInfo, fileName, commitRef) {
-    const cacheKey = `${fileName}:${commitRef}`;
+  async fetchBlameDataWithCache(fileInfo) {
+    const cacheKey = `${fileInfo.owner}/${fileInfo.repo}/${fileInfo.commitRef}/${fileInfo.fileName}`;
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
-    const data = await this.fetchBlameData(repoInfo, fileName, commitRef);
+    const data = await this.fetchBlameData(fileInfo);
     this.cache.set(cacheKey, data);
     return data;
   }
 
-  async fetchBlameData(repoInfo, fileName, commitRef) {
-    console.log('Fetching blame data for:', { repoInfo, fileName, commitRef });
+  async fetchBlameData(fileInfo) {
+    console.log('Fetching blame data for:', fileInfo);
     const response = await chrome.runtime.sendMessage({
       action: 'fetch_blame_data',
-      args: {
-        owner: repoInfo.owner,
-        repo: repoInfo.repo,
-        fileName: fileName,
-        commitRef: commitRef
-      }
+      args: fileInfo,
     })
     return response.data;
   }
