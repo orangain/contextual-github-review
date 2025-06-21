@@ -1,19 +1,13 @@
 .blame-area {
-  position: absolute;
-  left: -170px;
-  top: 0;
-  width: 170px;
-  height: 100%;
-  margin: 0;
   padding-left: 4px;
   background: rgb(233, 222, 208);
   text-align: left;
-  overflow-x: auto;
-  overflow-y: hidden;
+  vertical-align: top;
+  border-top: 1px solid #efefef;
 }
 
 .blame-area .blame-info {
-  border-top: 1px solid #efefef;
+  font-size: 12px;
 }
 
 .blame-info a {

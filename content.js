@@ -61,6 +61,26 @@ class GitHubBlameViewer {
       return;
     }
 
+    const colGroup = diffTable.querySelector('colgroup');
+    if (!colGroup) {
+      console.warn('No colgroup found in diff table:', diffTable);
+      return;
+    }
+    const cols = colGroup.querySelectorAll('col');
+    if (cols.length === 4) {
+      const blameCol = document.createElement('col');
+      blameCol.setAttribute('width', '170');
+      colGroup.appendChild(blameCol); // Add a new column for blame info
+    }
+
+    const codeHunks = diffTable.querySelectorAll('td.blob-code-hunk');
+    console.log('Found code hunks:', codeHunks.length);
+    codeHunks.forEach(hunk => {
+      if (hunk.colSpan === 3) {
+        hunk.colSpan = 4; // Adjust colspan to account for blame column
+      }
+    });
+
     const addedRows = Array.from(diffTable.querySelectorAll('tr'))
       .map(row => ({ row, lineNumber: this.extractLineNumberOfAddition(row) }))
       .filter(({ lineNumber }) => lineNumber !== null && !isNaN(lineNumber))
@@ -76,15 +96,15 @@ class GitHubBlameViewer {
     const groupedAddedRows = this.groupAddedRowsByBlame(addedRows, blameData);
     console.log('Grouped added rows by blame:', groupedAddedRows.length);
     groupedAddedRows.forEach(group => {
-      group.forEach(({ row, lineBlame }, i) => {
-        const blameArea = this.createBlameAreaElement();
-        if (i === 0) {
-          const blameInfoElement = this.createBlameInfoElement(lineBlame);
-          blameArea.appendChild(blameInfoElement);
-        }
-        this.addBlameArea(row, blameArea);
-        return lineBlame;
-      })
+      const row = group[0].row; // Use the first row in the group to add the blame area
+      const lineBlame = group[0].lineBlame; // Use the blame info from the first row
+
+      const blameArea = this.createBlameAreaElement(group.length);
+
+      const blameInfoElement = this.createBlameInfoElement(lineBlame);
+      blameArea.appendChild(blameInfoElement);
+
+      this.addBlameArea(row, blameArea);
     });
   }
 
@@ -227,9 +247,10 @@ class GitHubBlameViewer {
     };
   }
 
-  createBlameAreaElement() {
-    const blameArea = document.createElement('div');
+  createBlameAreaElement(rowSpan) {
+    const blameArea = document.createElement('td');
     blameArea.className = 'blame-area';
+    blameArea.setAttribute('rowspan', rowSpan);
     return blameArea;
   }
 
@@ -252,13 +273,7 @@ class GitHubBlameViewer {
   }
 
   addBlameArea(row, blameArea) {
-    const lineCell = row.querySelector('.blob-num-addition');
-    if (lineCell) {
-      lineCell.appendChild(blameArea);
-      console.log('Added blame area to line:', lineCell);
-    } else {
-      console.warn('Could not find line cell for blame area');
-    }
+    row.appendChild(blameArea);
   }
 }
 
