@@ -6,8 +6,6 @@ class GitHubBlameViewer {
 
   init() {
     console.log('GitHub Blame Viewer initialized');
-    // We don't check for PR page here because GitHub uses pjax to load pages dynamically,
-    // so we need to observe all changes in the document body.
     this.setupObserver();
     this.processTree(document);
   }
@@ -32,7 +30,6 @@ class GitHubBlameViewer {
 
   processTree(rootElement) {
     const repoInfo = this.extractRepoInfo();
-    console.log('Processing existing diffs');
     const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
     fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
@@ -42,36 +39,34 @@ class GitHubBlameViewer {
     console.log('Processing file container:', container);
     const diffRows = Array.from(container.querySelectorAll('.diff-table tr')).filter(row => this.extractLineNumberOfAddition(row) !== null);
     console.log('Found diff rows:', diffRows.length);
-    const { commitRef, fileName } = this.extractCommitRefAndFileName(repoInfo, container);
-    console.log('Extracted file name:', fileName, ' and commitRef:', commitRef);
+    const commitRefAndFileName = this.extractCommitRefAndFileName(repoInfo, container);
+    console.log('Extracted file name and commit ref:', commitRefAndFileName);
+
+    if (commitRefAndFileName === null) {
+      console.warn('Could not extract commit ref and file name from blob link');
+      return;
+    }
     const fileInfo = {
       ...repoInfo,
-      fileName,
-      commitRef,
+      ...commitRefAndFileName,
     }
-    if (fileName !== null) {
-      diffRows.forEach(row => {
-        this.processDiffRow(row, fileInfo);
-      });
-    }
+    diffRows.forEach(row => {
+      this.processDiffRow(row, fileInfo);
+    });
   }
 
   extractCommitRefAndFileName(repoInfo, container) {
     const blobLinks = container.querySelectorAll('.dropdown a[href*="/blob/"]');
-    console.log('Found blob links:', blobLinks.length);
     const blobLinkHrefs = Array.from(blobLinks).map(link => link.getAttribute('href'));
-    console.log('Found blob links:', blobLinkHrefs);
     const regex = RegExp(`^/${repoInfo.owner}/${repoInfo.repo}/blob/([0-9a-f]{40})/(.*)$`);
     const blobLinkMatches = blobLinkHrefs.map(href => regex.exec(href)).filter(match => match !== null);
     const blobLinkMatch = blobLinkMatches.length > 0 ? blobLinkMatches[0] : null;
-    console.log('Blob link match:', blobLinkMatch);
 
     if (!blobLinkMatch) {
       return null;
     }
     const commitRef = blobLinkMatch[1]; // Assuming the first capturing group is the commit ref
     const fileName = blobLinkMatch[2]; // Assuming the second capturing group is the file name
-    console.log('Extracted commit ref and file name from blob link:', { commitRef, fileName });
     return { commitRef, fileName };
   }
 
@@ -85,10 +80,13 @@ class GitHubBlameViewer {
     if (!lineNumber) return;
 
     try {
-      const blameInfo = await this.getBlameInfo(fileInfo, lineNumber);
-      console.log('Blame info for line:', blameInfo);
-      if (blameInfo) {
-        this.addBlameDisplay(row, blameInfo);
+      console.log('Fetching blame data for:', fileInfo);
+      const blameData = await this.fetchBlameDataWithCache(fileInfo);
+      console.log('Fetched blame data:', blameData);
+      const lineBlame = this.findBlameForLine(blameData, lineNumber);
+      console.log('Blame info for line:', lineBlame);
+      if (lineBlame) {
+        this.addBlameDisplay(row, lineBlame);
       }
     } catch (error) {
       console.error('Failed to get blame info:', error);
@@ -104,27 +102,20 @@ class GitHubBlameViewer {
     return null;
   }
 
-
-  async getBlameInfo(fileInfo, lineNumber) {
-    const blameData = await this.fetchBlameDataWithCache(fileInfo);
-    console.log('Fetched blame data:', blameData);
-    const lineBlame = this.findBlameForLine(blameData, lineNumber);
-    return lineBlame;
-  }
-
   async fetchBlameDataWithCache(fileInfo) {
     const cacheKey = `${fileInfo.owner}/${fileInfo.repo}/${fileInfo.commitRef}/${fileInfo.fileName}`;
     if (this.cache.has(cacheKey)) {
+      console.log('Cache hit for:', cacheKey);
       return this.cache.get(cacheKey);
     }
 
+    console.log('Cache miss for:', cacheKey);
     const data = await this.fetchBlameData(fileInfo);
     this.cache.set(cacheKey, data);
     return data;
   }
 
   async fetchBlameData(fileInfo) {
-    console.log('Fetching blame data for:', fileInfo);
     const response = await chrome.runtime.sendMessage({
       action: 'fetch_blame_data',
       args: fileInfo,
