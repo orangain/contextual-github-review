@@ -23,7 +23,7 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .blame-info {
+  .blame-area {
     background-color: rgba(110, 118, 129, 0.1);
     color: #8b949e;
   }
@@ -34,7 +34,7 @@
 }
 
 /* GitHub dark theme */
-[data-color-mode="dark"] .blame-info {
+[data-color-mode="dark"] .blame-area {
   background-color: rgba(110, 118, 129, 0.1);
   color: #8b949e;
 }
