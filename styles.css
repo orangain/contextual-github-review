@@ -1,4 +1,4 @@
-.blame-info {
+.blame-area {
   position: absolute;
   left: -170px;
   top: 0;
@@ -10,6 +10,10 @@
   text-align: left;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.blame-area .blame-info {
+  border-top: 1px solid #efefef;
 }
 
 .blame-info a {

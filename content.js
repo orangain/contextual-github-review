@@ -89,8 +89,8 @@ class GitHubBlameViewer {
 
   processAddedRow(row, lineNumber, blameData, lastLineBlame) {
     console.log('Processing added row:', row);
-    if (row.querySelector('.blame-info')) {
-      return; // Skip if blame info already exists
+    if (row.querySelector('.blame-area')) {
+      return; // Skip if blame area already exists
     }
 
     try {
@@ -169,7 +169,7 @@ class GitHubBlameViewer {
 
   addBlameInfoArea(row) {
     const blameArea = document.createElement('div');
-    blameArea.className = 'blame-info';
+    blameArea.className = 'blame-area';
 
     const lineCell = row.querySelector('.blob-num-addition');
     if (lineCell) {
@@ -183,6 +183,9 @@ class GitHubBlameViewer {
   }
 
   addBlameDisplay(blameArea, blameInfo) {
+    const blameInfoElement = document.createElement('div');
+    blameInfoElement.className = 'blame-info';
+
     let title = `${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}`;
     if (blameInfo.messageBody !== '') {
       title += `\n\n${blameInfo.messageBody}`;
@@ -192,7 +195,9 @@ class GitHubBlameViewer {
     commitLink.target = '_blank';
     commitLink.title = title;
     commitLink.textContent = blameInfo.messageHeadline;
-    blameArea.appendChild(commitLink);
+    blameInfoElement.appendChild(commitLink);
+
+    blameArea.appendChild(blameInfoElement);
   }
 }
 
