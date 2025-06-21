@@ -73,14 +73,18 @@ class GitHubBlameViewer {
     const blameData = await this.fetchBlameDataWithCache(fileInfo);
     console.log('Fetched blame data:', blameData);
 
-    let lastLineBlame = null;
-    let lastLineNumber = null;
-    addedRows.forEach(({ row, lineNumber }) => {
-      if (lastLineNumber !== null && lineNumber !== lastLineNumber + 1) {
-        lastLineBlame = null; // Reset if there's a gap in line numbers
-      }
-      lastLineBlame = this.processAddedRow(row, lineNumber, blameData, lastLineBlame);
-      lastLineNumber = lineNumber;
+    const groupedAddedRows = this.groupAddedRowsByBlame(addedRows, blameData);
+    console.log('Grouped added rows by blame:', groupedAddedRows.length);
+    groupedAddedRows.forEach(group => {
+      group.forEach(({ row, lineBlame }, i) => {
+        const blameArea = this.createBlameAreaElement();
+        if (i === 0) {
+          const blameInfoElement = this.createBlameInfoElement(lineBlame);
+          blameArea.appendChild(blameInfoElement);
+        }
+        this.addBlameArea(row, blameArea);
+        return lineBlame;
+      })
     });
   }
 
@@ -99,28 +103,29 @@ class GitHubBlameViewer {
     return { commitRef, fileName };
   }
 
-  processAddedRow(row, lineNumber, blameData, lastLineBlame) {
-    console.log('Processing added row:', row);
-    if (row.querySelector('.blame-area')) {
-      return; // Skip if blame area already exists
-    }
-
-    try {
+  /**
+   * Groups added rows by their blame information.
+   * @param {Array<{row: Node, lineNumber: number}>} addedRows - Array of added rows with their line numbers
+   * @param {BlameData} blameData - Blame data containing ranges and commits
+   * @returns {Array<Array<{row: Node, lineNumber: number, lineBlame: LineBlame}>>}
+   */
+  groupAddedRowsByBlame(addedRows, blameData) {
+    const groups = [];
+    let lastCommitUrl = null;
+    let lastLineNumber = null;
+    addedRows.forEach(({ row, lineNumber }) => {
       const lineBlame = this.findBlameForLine(blameData, lineNumber);
-      console.log('Blame info for line:', lineBlame);
       if (lineBlame) {
-        const blameArea = this.createBlameAreaElement(row);
-        if (lineBlame.commitUrl !== lastLineBlame?.commitUrl) {
-          const blameInfoElement = this.createBlameInfoElement(lineBlame);
-          blameArea.appendChild(blameInfoElement);
+        if (lastCommitUrl === null || lastCommitUrl !== lineBlame.commitUrl || lastLineNumber !== lineNumber - 1) {
+          groups.push([]);
         }
-        this.addBlameArea(row, blameArea);
-        return lineBlame;
+        const lastGroup = groups[groups.length - 1];
+        lastGroup.push({ row, lineNumber, lineBlame });
       }
-    } catch (error) {
-      console.error('Failed to get blame info:', error);
-    }
-    return null;
+      lastCommitUrl = lineBlame?.commitUrl;
+      lastLineNumber = lineNumber;
+    });
+    return groups;
   }
 
   extractLineNumberOfAddition(row) {
