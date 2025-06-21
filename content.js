@@ -8,7 +8,7 @@ class GitHubBlameViewer {
     console.log('GitHub Blame Viewer initialized');
     if (this.isPullRequestPage()) {
       console.log('Pull request page detected, setting up observer');
-      this.setupObserver();
+      // this.setupObserver();
       this.processExistingDiffs();
     }
   }
@@ -46,25 +46,38 @@ class GitHubBlameViewer {
 
   processDiffContainer(container) {
     console.log('Processing diff container:', container);
-    const diffRows = container.querySelectorAll('tr');
+    const diffRows = Array.from(container.querySelectorAll('tr')).filter(row => this.extractLineNumberOfAddition(row) !== null);
     console.log('Found diff rows:', diffRows.length);
-    diffRows.forEach(row => {
-      if (row.querySelector('.blob-num.js-line-number')) {
-        this.processDiffRow(row);
-      }
-    });
+    const fileName = this.extractFileName(container);
+    console.log('Extracted file name:', fileName);
+    if (fileName !== null) {
+      diffRows.forEach(row => {
+        this.processDiffRow(row, fileName);
+      });
+    }
   }
 
-  async processDiffRow(row) {
+  extractFileName(container) {
+    const fileContainer = container.closest('.file[data-tagsearch-path]');
+    if (fileContainer) {
+      const fileName = fileContainer.getAttribute('data-tagsearch-path');
+      return fileName;
+    }
+    return null;
+  }
+
+  async processDiffRow(row, fileName) {
+    console.log('Processing diff row:', row);
     if (row.querySelector('.blame-info')) return;
 
-    const lineNumber = this.extractLineNumber(row);
-    const fileName = this.extractFileName(row);
-    
+    const lineNumber = this.extractLineNumberOfAddition(row);
+
+    console.log('Extracted line number:', lineNumber);
     if (!lineNumber || !fileName) return;
 
     try {
       const blameInfo = await this.getBlameInfo(fileName, lineNumber);
+      console.log('Blame info for line:', blameInfo);
       if (blameInfo) {
         this.addBlameDisplay(row, blameInfo);
       }
@@ -73,56 +86,50 @@ class GitHubBlameViewer {
     }
   }
 
-  extractLineNumber(row) {
-    const lineNumElement = row.querySelector('.blob-num.js-line-number[data-line-number]');
+  extractLineNumberOfAddition(row) {
+    const lineNumElement = row.querySelector('.blob-num-addition.js-linkable-line-number[data-line-number]');
     if (lineNumElement) {
       const lineNumber = parseInt(lineNumElement.getAttribute('data-line-number'));
-      console.log('Extracted line number:', lineNumber);
       return lineNumber;
     }
     return null;
   }
 
-  extractFileName(row) {
-    const fileContainer = row.closest('.file-diff, .file');
-    if (fileContainer) {
-      const fileNameElement = fileContainer.querySelector('.file-header .file-info .file-name, .file-header [title*="/"]');
-      if (fileNameElement) {
-        const fileName = fileNameElement.textContent || fileNameElement.getAttribute('title');
-        console.log('Extracted file name:', fileName);
-        return fileName;
-      }
-    }
-    return null;
-  }
 
   async getBlameInfo(fileName, lineNumber) {
-    const cacheKey = `${fileName}:${lineNumber}`;
+    const repoInfo = this.extractRepoInfo();
+    if (!repoInfo) return null;
+    const commitRef = "main"; // TODO: 動的に取得する
+
+    const blameData = await this.fetchBlameDataWithCache(repoInfo, fileName, commitRef);
+    console.log('Fetched blame data:', blameData);
+    const lineBlame = this.findBlameForLine(blameData, lineNumber);
+    return lineBlame;
+  }
+
+  async fetchBlameDataWithCache(repoInfo, fileName, commitRef) {
+    const cacheKey = `${fileName}:${commitRef}`;
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
-    const repoInfo = this.extractRepoInfo();
-    if (!repoInfo) return null;
+    const data = await this.fetchBlameData(repoInfo, fileName, commitRef);
+    this.cache.set(cacheKey, data);
+    return data;
+  }
 
-    try {
-      const response = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/blame/${repoInfo.branch}/${fileName}`, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const blameData = await response.json();
-      const lineBlame = this.findBlameForLine(blameData, lineNumber);
-      
-      this.cache.set(cacheKey, lineBlame);
-      return lineBlame;
-    } catch (error) {
-      console.error('API request failed:', error);
-      return null;
-    }
+  async fetchBlameData(repoInfo, fileName, commitRef) {
+    console.log('Fetching blame data for:', { repoInfo, fileName, commitRef });
+    const response = await chrome.runtime.sendMessage({
+      action: 'fetch_blame_data',
+      args: {
+        owner: repoInfo.owner,
+        repo: repoInfo.repo,
+        fileName: fileName,
+        commitRef: commitRef
+      }
+    })
+    return response.data;
   }
 
   extractRepoInfo() {
@@ -137,41 +144,34 @@ class GitHubBlameViewer {
   }
 
   findBlameForLine(blameData, targetLine) {
-    let currentLine = 1;
-    
-    for (const range of blameData.ranges) {
-      const endLine = currentLine + range.count - 1;
-      
-      if (targetLine >= currentLine && targetLine <= endLine) {
-        return {
-          commit: range.commit,
-          author: range.commit.author,
-          message: range.commit.message,
-          sha: range.commit.sha.substring(0, 8),
-          date: new Date(range.commit.author.date).toLocaleDateString()
-        };
-      }
-      
-      currentLine += range.count;
+    const targetRanges = blameData.ranges.filter(r => r.startingLine <= targetLine && r.endingLine >= targetLine);
+    if (targetRanges.length === 0) return null;
+    if (targetRanges.length > 1) {
+      console.warn('Multiple blame ranges found for line:', targetLine, targetRanges);
     }
-    
-    return null;
+    const range = targetRanges[0];
+
+    return {
+      author: range.commit.author.name,
+      messageHeadline: range.commit.messageHeadline,
+      messageBody: range.commit.messageBody,
+      committedDate: range.commit.committedDate,
+      commitUrl: range.commit.commitUrl,
+    };
   }
 
   addBlameDisplay(row, blameInfo) {
     const blameElement = document.createElement('div');
     blameElement.className = 'blame-info';
     blameElement.innerHTML = `
-      <span class="blame-commit" title="${blameInfo.message}">
-        <a href="https://github.com/${this.extractRepoInfo().owner}/${this.extractRepoInfo().repo}/commit/${blameInfo.commit.sha}" target="_blank">
-          ${blameInfo.sha}
+      <span class="blame-commit" title="${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}\n\n${blameInfo.messageBody}">
+        <a href="${blameInfo.commitUrl}" target="_blank">
+          ${blameInfo.messageHeadline}
         </a>
       </span>
-      <span class="blame-author">${blameInfo.author.name}</span>
-      <span class="blame-date">${blameInfo.date}</span>
     `;
 
-    const lineCell = row.querySelector('.blob-num.js-line-number');
+    const lineCell = row.querySelector('.blob-num-addition');
     if (lineCell) {
       lineCell.appendChild(blameElement);
       console.log('Added blame info to line:', lineCell);

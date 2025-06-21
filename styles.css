@@ -1,5 +1,15 @@
 .blame-info {
-  display: flex;
+  position: absolute;
+  left: -100px;
+  top: 0;
+  background: rgb(233, 222, 208);
+  right: 0;
+  bottom: 0;
+  width: 100px;
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  /* display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
@@ -8,7 +18,7 @@
   border-radius: 3px;
   font-size: 11px;
   line-height: 1.2;
-  color: #656d76;
+  color: #656d76; */
 }
 
 .blame-commit a {
@@ -38,15 +48,15 @@
     background-color: rgba(110, 118, 129, 0.1);
     color: #8b949e;
   }
-  
+
   .blame-commit a {
     color: #58a6ff;
   }
-  
+
   .blame-author {
     color: #f0f6fc;
   }
-  
+
   .blame-date {
     color: #8b949e;
   }
