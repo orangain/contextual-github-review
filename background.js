@@ -42,6 +42,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+/**
+ * @typedef {Object} BlameAuthor
+ * @property {string} name - Author name
+ */
+
+/**
+ * @typedef {Object} BlameCommit
+ * @property {string} oid - Commit SHA
+ * @property {string} messageHeadline - Commit message headline
+ * @property {string} messageBody - Commit message body
+ * @property {string} commitUrl - URL to the commit
+ * @property {string} committedDate - Commit date
+ * @property {BlameAuthor} author - Commit author
+ */
+
+/**
+ * @typedef {Object} BlameRange
+ * @property {number} startingLine - Starting line number
+ * @property {number} endingLine - Ending line number
+ * @property {number} age - Age of the blame range
+ * @property {BlameCommit} commit - Commit information
+ */
+
+/**
+ * @typedef {Object} BlameData
+ * @property {BlameRange[]} ranges - Array of blame ranges
+ */
+
+/**
+ * Fetches blame data from GitHub GraphQL API
+ * @param {Object} args - Parameters for the blame query
+ * @param {string} args.owner - Repository owner
+ * @param {string} args.repo - Repository name
+ * @param {string} args.commitRef - Commit reference/SHA
+ * @param {string} args.fileName - File path to get blame for
+ * @param {string} token - GitHub Personal Access Token
+ * @returns {Promise<BlameData>} Promise resolving to blame data with ranges array
+ */
 async function fetchBlameData(args, token) {
   // See: https://docs.github.com/ja/graphql/reference/objects#blame
   const res = await fetch("https://api.github.com/graphql", {
