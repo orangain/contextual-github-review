@@ -35,6 +35,12 @@ class GitHubBlameViewer {
     fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
   }
 
+  /**
+   * Processes a file container to extract commit reference and file name,
+   * @param {RepoInfo} repoInfo - Information about the repository
+   * @param {Node} container - The file container element to process
+   * @returns {Promise<void>}
+   */
   async processFileContainer(repoInfo, container) {
     console.log('Processing file container:', container);
     const commitRefAndFileName = this.extractCommitRefAndFileName(repoInfo, container);
@@ -126,6 +132,19 @@ class GitHubBlameViewer {
     return null;
   }
 
+  /**
+   * @typedef {Object} FileInfo
+   * @property {string} owner - Repository owner
+   * @property {string} repo - Repository name
+   * @property {string} commitRef - Commit reference (SHA)
+   * @property {string} fileName - Name of the file
+   */
+
+  /**
+   * Fetches blame data with caching mechanism
+   * @param {FileInfo} fileInfo - Information about the file to get blame for
+   * @returns {Promise<BlameData>} Promise resolving to blame data with ranges array
+   */
   async fetchBlameDataWithCache(fileInfo) {
     const cacheKey = `${fileInfo.owner}/${fileInfo.repo}/${fileInfo.commitRef}/${fileInfo.fileName}`;
     if (this.cache.has(cacheKey)) {
@@ -139,6 +158,11 @@ class GitHubBlameViewer {
     return data;
   }
 
+  /**
+   * Fetches blame data from the background script
+   * @param {FileInfo} fileInfo - Information about the file to get blame for
+   * @returns {Promise<BlameData>} Promise resolving to blame data with ranges array
+   */
   async fetchBlameData(fileInfo) {
     const response = await chrome.runtime.sendMessage({
       action: 'fetch_blame_data',
@@ -147,6 +171,15 @@ class GitHubBlameViewer {
     return response.data;
   }
 
+  /**
+   * @typedef {Object} RepoInfo
+   * @property {string} owner - Repository owner
+   * @property {string} repo - Repository name
+   */
+  /**
+   * Extracts repository information from the current URL
+   * @returns {RepoInfo | null}
+   */
   extractRepoInfo() {
     const pathParts = window.location.pathname.split('/');
     if (pathParts.length < 4) return null;
@@ -154,10 +187,24 @@ class GitHubBlameViewer {
     return {
       owner: pathParts[1],
       repo: pathParts[2],
-      branch: 'main' // Default branch, could be improved to detect actual branch
     };
   }
 
+  /**
+   * @typedef {Object} LineBlame
+   * @property {string} author - Commit author
+   * @property {string} messageHeadline - Commit message headline
+   * @property {string} messageBody - Commit message body
+   * @property {string} committedDate - Commit date
+   * @property {string} commitUrl - URL to the commit
+   */
+
+  /**
+   * Finds the blame information for a specific line in the blame data.
+   * @param {BlameData} blameData - The blame data containing ranges and commits.
+   * @param {number} targetLine - The line number to find blame for.
+   * @returns {LineBlame | null}
+   */
   findBlameForLine(blameData, targetLine) {
     const targetRanges = blameData.ranges.filter(r => r.startingLine <= targetLine && r.endingLine >= targetLine);
     if (targetRanges.length === 0) return null;
