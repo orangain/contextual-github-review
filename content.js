@@ -50,8 +50,9 @@ class GitHubBlameViewer {
     }
 
     const addedRows = Array.from(container.querySelectorAll('.diff-table tr'))
-      .filter(row => this.extractLineNumberOfAddition(row) !== null);
-    console.log('Found diff rows:', addedRows.length);
+      .map(row => ({ row, lineNumber: this.extractLineNumberOfAddition(row) }))
+      .filter(({ lineNumber }) => lineNumber !== null && !isNaN(lineNumber))
+    console.log('Found added rows:', addedRows.length);
     if (addedRows.length === 0) {
       return;
     }
@@ -60,8 +61,14 @@ class GitHubBlameViewer {
     const blameData = await this.fetchBlameDataWithCache(fileInfo);
     console.log('Fetched blame data:', blameData);
 
-    addedRows.forEach(row => {
-      this.processAddedRow(row, blameData);
+    let lastLineBlame = null;
+    let lastLineNumber = null;
+    addedRows.forEach(({ row, lineNumber }) => {
+      if (lastLineNumber !== null && lineNumber !== lastLineNumber + 1) {
+        lastLineBlame = null; // Reset if there's a gap in line numbers
+      }
+      lastLineBlame = this.processAddedRow(row, lineNumber, blameData, lastLineBlame);
+      lastLineNumber = lineNumber;
     });
   }
 
@@ -80,26 +87,26 @@ class GitHubBlameViewer {
     return { commitRef, fileName };
   }
 
-  async processAddedRow(row, blameData) {
+  processAddedRow(row, lineNumber, blameData, lastLineBlame) {
     console.log('Processing added row:', row);
-    if (row.querySelector('.blame-info')) return;
-
-    const lineNumber = this.extractLineNumberOfAddition(row);
-    console.log('Extracted line number:', lineNumber);
-    if (!lineNumber) {
-      console.warn('No line number found for added row:', row);
-      return;
+    if (row.querySelector('.blame-info')) {
+      return; // Skip if blame info already exists
     }
 
     try {
       const lineBlame = this.findBlameForLine(blameData, lineNumber);
       console.log('Blame info for line:', lineBlame);
       if (lineBlame) {
-        this.addBlameDisplay(row, lineBlame);
+        const blameArea = this.addBlameInfoArea(row);
+        if (lineBlame.commitUrl !== lastLineBlame?.commitUrl) {
+          this.addBlameDisplay(blameArea, lineBlame);
+        }
+        return lineBlame;
       }
     } catch (error) {
       console.error('Failed to get blame info:', error);
     }
+    return null;
   }
 
   extractLineNumberOfAddition(row) {
@@ -160,24 +167,29 @@ class GitHubBlameViewer {
     };
   }
 
-  addBlameDisplay(row, blameInfo) {
-    const blameElement = document.createElement('div');
-    blameElement.className = 'blame-info';
-    blameElement.innerHTML = `
+  addBlameInfoArea(row) {
+    const blameArea = document.createElement('div');
+    blameArea.className = 'blame-info';
+
+    const lineCell = row.querySelector('.blob-num-addition');
+    if (lineCell) {
+      lineCell.appendChild(blameArea);
+      console.log('Added blame area to line:', lineCell);
+    } else {
+      console.warn('Could not find line cell for blame area');
+    }
+
+    return blameArea;
+  }
+
+  addBlameDisplay(blameArea, blameInfo) {
+    blameArea.innerHTML = `
       <span class="blame-commit" title="${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}\n\n${blameInfo.messageBody}">
         <a href="${blameInfo.commitUrl}" target="_blank">
           ${blameInfo.messageHeadline}
         </a>
       </span>
     `;
-
-    const lineCell = row.querySelector('.blob-num-addition');
-    if (lineCell) {
-      lineCell.appendChild(blameElement);
-      console.log('Added blame info to line:', lineCell);
-    } else {
-      console.log('Could not find line cell for blame info');
-    }
   }
 }
 
