@@ -49,7 +49,13 @@ class GitHubBlameViewer {
       ...commitRefAndFileName,
     }
 
-    const addedRows = Array.from(container.querySelectorAll('.diff-table tr'))
+    const diffTable = container.querySelector('.diff-table');
+    if (!diffTable) {
+      console.warn('No diff table found in container:', container);
+      return;
+    }
+
+    const addedRows = Array.from(diffTable.querySelectorAll('tr'))
       .map(row => ({ row, lineNumber: this.extractLineNumberOfAddition(row) }))
       .filter(({ lineNumber }) => lineNumber !== null && !isNaN(lineNumber))
     console.log('Found added rows:', addedRows.length);
