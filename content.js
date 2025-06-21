@@ -35,10 +35,8 @@ class GitHubBlameViewer {
     fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
   }
 
-  processFileContainer(repoInfo, container) {
+  async processFileContainer(repoInfo, container) {
     console.log('Processing file container:', container);
-    const diffRows = Array.from(container.querySelectorAll('.diff-table tr')).filter(row => this.extractLineNumberOfAddition(row) !== null);
-    console.log('Found diff rows:', diffRows.length);
     const commitRefAndFileName = this.extractCommitRefAndFileName(repoInfo, container);
     console.log('Extracted file name and commit ref:', commitRefAndFileName);
 
@@ -50,8 +48,20 @@ class GitHubBlameViewer {
       ...repoInfo,
       ...commitRefAndFileName,
     }
+
+    const diffRows = Array.from(container.querySelectorAll('.diff-table tr'))
+      .filter(row => this.extractLineNumberOfAddition(row) !== null);
+    console.log('Found diff rows:', diffRows.length);
+    if (diffRows.length === 0) {
+      return;
+    }
+
+    console.log('Fetching blame data for:', fileInfo);
+    const blameData = await this.fetchBlameDataWithCache(fileInfo);
+    console.log('Fetched blame data:', blameData);
+
     diffRows.forEach(row => {
-      this.processDiffRow(row, fileInfo);
+      this.processDiffRow(row, blameData);
     });
   }
 
@@ -70,7 +80,7 @@ class GitHubBlameViewer {
     return { commitRef, fileName };
   }
 
-  async processDiffRow(row, fileInfo) {
+  async processDiffRow(row, blameData) {
     console.log('Processing diff row:', row);
     if (row.querySelector('.blame-info')) return;
 
@@ -80,9 +90,6 @@ class GitHubBlameViewer {
     if (!lineNumber) return;
 
     try {
-      console.log('Fetching blame data for:', fileInfo);
-      const blameData = await this.fetchBlameDataWithCache(fileInfo);
-      console.log('Fetched blame data:', blameData);
       const lineBlame = this.findBlameForLine(blameData, lineNumber);
       console.log('Blame info for line:', lineBlame);
       if (lineBlame) {
