@@ -1,14 +1,15 @@
 .blame-info {
   position: absolute;
-  left: -100px;
+  left: -170px;
   top: 0;
-  background: rgb(233, 222, 208);
-  right: 0;
-  bottom: 0;
-  width: 100px;
+  width: 170px;
   height: 100%;
   margin: 0;
-  overflow-x: hidden;
+  padding-left: 4px;
+  background: rgb(233, 222, 208);
+  text-align: left;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .blame-info a {
