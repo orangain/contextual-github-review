@@ -184,11 +184,9 @@ class GitHubBlameViewer {
 
   addBlameDisplay(blameArea, blameInfo) {
     blameArea.innerHTML = `
-      <span class="blame-commit" title="${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}\n\n${blameInfo.messageBody}">
-        <a href="${blameInfo.commitUrl}" target="_blank">
-          ${blameInfo.messageHeadline}
-        </a>
-      </span>
+      <a href="${blameInfo.commitUrl}" target="_blank" title="${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}\n\n${blameInfo.messageBody}">
+        ${blameInfo.messageHeadline}
+      </a>
     `;
   }
 }
