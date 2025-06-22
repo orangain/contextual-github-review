@@ -22,12 +22,18 @@ A Chrome extension that provides contextual information for GitHub Pull Requests
    - This is required for fetching blame information using GitHub's GraphQL API.
 3. Click "Save Settings"
 
-## How to Create a GitHub Token
+### How to Create a GitHub Token
 
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Click "Generate new token (classic)"
-3. Select scopes: `repo` (for private repos) or `public_repo` (for public repos only)
-4. Copy the generated token and paste it in the extension popup
+1. Go to GitHub Settings → Developer settings → Personal access tokens → [Fine-grained personal access tokens](https://github.com/settings/personal-access-tokens)
+2. Click "Generate new token"
+3. Configure the token as follows:
+   - Token name: e.g., "Contextual GitHub Review Extension"
+   - Expiration: Set as needed (e.g., 90 days)
+   - Repository access: Choose "All repositories" or specific repositories
+   - Permissions → Repository permissions:
+     - Contents: Read-only Access
+4. Click "Generate token"
+5. Copy the generated token and paste it into the extension settings
 
 ## Usage
 
