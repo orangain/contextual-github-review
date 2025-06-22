@@ -8,7 +8,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'fetch_blame_data': {
       const { args } = request;
       console.log('Received fetch_blame_data request with args:', args);
-      chrome.storage.sync.get(['github_token'], async (result) => {
+      chrome.storage.local.get(['github_token'], async (result) => {
         const token = result.github_token;
         if (!token) {
           sendResponse({ error: 'GitHub token not found' });

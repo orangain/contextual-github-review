@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    chrome.storage.sync.set({ github_token: token }, () => {
+    chrome.storage.local.set({ github_token: token }, () => {
       showStatus('Settings saved successfully!', 'success');
     });
   });
