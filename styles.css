@@ -4,6 +4,9 @@
   background: #efefef;
   text-align: left;
   vertical-align: top;
+}
+
+.blame-area.next-to-previous-group {
   border-top: 1px solid #fff;
 }
 

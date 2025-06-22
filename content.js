@@ -102,16 +102,20 @@ class GitHubBlameViewer {
 
     const groupedAddedRows = this.groupAddedRowsByBlame(addedRows, blameData);
     console.log('Grouped added rows by blame:', groupedAddedRows.length);
-    groupedAddedRows.forEach(group => {
-      const row = group[0].row; // Use the first row in the group to add the blame area
-      const lineBlame = group[0].lineBlame; // Use the blame info from the first row
+    let lastRowsInGroup = null;
+    groupedAddedRows.forEach(rowsInGroup => {
+      const row = rowsInGroup[0].row; // Use the first row in the group to add the blame area
+      const lineBlame = rowsInGroup[0].lineBlame; // Use the blame info from the first row
 
-      const blameArea = this.createBlameAreaElement(group.length);
+      const needsBorder = lastRowsInGroup !== null && lastRowsInGroup[lastRowsInGroup.length - 1].lineNumber + 1 === rowsInGroup[0].lineNumber;
+
+      const blameArea = this.createBlameAreaElement(rowsInGroup.length, needsBorder);
 
       const blameInfoElement = this.createBlameInfoElement(lineBlame);
       blameArea.appendChild(blameInfoElement);
 
       this.addBlameArea(row, blameArea);
+      lastRowsInGroup = rowsInGroup;
     });
   }
 
@@ -260,9 +264,12 @@ class GitHubBlameViewer {
     };
   }
 
-  createBlameAreaElement(rowSpan) {
+  createBlameAreaElement(rowSpan, needsBorder) {
     const blameArea = document.createElement('td');
     blameArea.className = 'blame-area';
+    if (needsBorder) {
+      blameArea.classList.add('next-to-previous-group');
+    }
     blameArea.setAttribute('rowspan', rowSpan);
     return blameArea;
   }
