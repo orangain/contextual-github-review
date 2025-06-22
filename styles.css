@@ -1,9 +1,10 @@
 .blame-area {
-  padding-left: 4px;
-  background: rgb(233, 222, 208);
+  padding-left: 8px;
+  padding-right: 8px;
+  background: #efefef;
   text-align: left;
   vertical-align: top;
-  border-top: 1px solid #efefef;
+  border-top: 1px solid #fff;
 }
 
 .blame-area .blame-info {
