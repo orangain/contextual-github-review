@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GitHub PR Blame Viewer",
+  "name": "Contextual GitHub Review",
   "version": "1.0.0",
-  "description": "Display git blame information for diff lines in GitHub Pull Request reviews",
+  "description": "Give your PRs meaningful background at a glance",
   "permissions": [
     "activeTab",
     "storage"
@@ -29,7 +29,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "GitHub PR Blame Viewer"
+    "default_title": "Contextual GitHub Review"
   },
   "icons": {
     "16": "icons/icon16.png",
