@@ -1,3 +1,5 @@
+const viewFileLinkRegExp = RegExp(`^/([^/]+)/([^/]+)/blob/([0-9a-f]{40})/(.*)$`);
+
 class GitHubBlameViewer {
   constructor() {
     this.cache = new Map();
@@ -32,10 +34,9 @@ class GitHubBlameViewer {
     if (!this.isPullRequestDiffPage()) {
       return;
     }
-    const repoInfo = this.extractRepoInfo();
     const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
-    fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
+    fileContainers.forEach(container => this.processFileContainer(container));
   }
 
   isPullRequestDiffPage() {
@@ -43,23 +44,18 @@ class GitHubBlameViewer {
   }
 
   /**
-   * Processes a file container to extract commit reference and file name,
-   * @param {RepoInfo} repoInfo - Information about the repository
+   * Processes a file container to extract file information and display blame data.
    * @param {Node} container - The file container element to process
    * @returns {Promise<void>}
    */
-  async processFileContainer(repoInfo, container) {
+  async processFileContainer(container) {
     console.log('Processing file container:', container);
-    const commitRefAndFileName = this.extractCommitRefAndFileName(repoInfo, container);
-    console.log('Extracted file name and commit ref:', commitRefAndFileName);
+    const fileInfo = this.extractFileInfo(container);
+    console.log('Extracted file info:', fileInfo);
 
-    if (commitRefAndFileName === null) {
+    if (fileInfo === null) {
       console.warn('Could not extract commit ref and file name from blob link');
       return;
-    }
-    const fileInfo = {
-      ...repoInfo,
-      ...commitRefAndFileName,
     }
 
     const diffTable = container.querySelector('.diff-table');
@@ -117,19 +113,34 @@ class GitHubBlameViewer {
     });
   }
 
-  extractCommitRefAndFileName(repoInfo, container) {
+  /**
+   * @typedef {Object} FileInfo
+   * @property {string} owner - Repository owner
+   * @property {string} repo - Repository name
+   * @property {string} commitRef - Commit reference (SHA)
+   * @property {string} fileName - Name of the file
+   */
+
+  /**
+   * Extracts file information from the container element.
+   * @param {Node} container 
+   * @returns {FileInfo|null} - Returns an object with file information or null if not found
+   */
+  extractFileInfo(container) {
     const blobLinks = container.querySelectorAll('.dropdown a[href*="/blob/"]');
     const blobLinkHrefs = Array.from(blobLinks).map(link => link.getAttribute('href'));
-    const regex = RegExp(`^/${repoInfo.owner}/${repoInfo.repo}/blob/([0-9a-f]{40})/(.*)$`);
-    const blobLinkMatches = blobLinkHrefs.map(href => regex.exec(href)).filter(match => match !== null);
+    const blobLinkMatches = blobLinkHrefs.map(href => viewFileLinkRegExp.exec(href)).filter(match => match !== null);
     const blobLinkMatch = blobLinkMatches.length > 0 ? blobLinkMatches[0] : null;
 
     if (!blobLinkMatch) {
       return null;
     }
-    const commitRef = blobLinkMatch[1]; // Assuming the first capturing group is the commit ref
-    const fileName = blobLinkMatch[2]; // Assuming the second capturing group is the file name
-    return { commitRef, fileName };
+    return {
+      owner: blobLinkMatch[1], // May differ from the owner in the URL, as it can be a fork
+      repo: blobLinkMatch[2], // May differ from the repo in the URL, as it can be a fork
+      commitRef: blobLinkMatch[3],
+      fileName: blobLinkMatch[4],
+    }
   }
 
   /**
@@ -167,14 +178,6 @@ class GitHubBlameViewer {
   }
 
   /**
-   * @typedef {Object} FileInfo
-   * @property {string} owner - Repository owner
-   * @property {string} repo - Repository name
-   * @property {string} commitRef - Commit reference (SHA)
-   * @property {string} fileName - Name of the file
-   */
-
-  /**
    * Fetches blame data with caching mechanism
    * @param {FileInfo} fileInfo - Information about the file to get blame for
    * @returns {Promise<BlameData>} Promise resolving to blame data with ranges array
@@ -209,25 +212,6 @@ class GitHubBlameViewer {
     }
 
     return response.data;
-  }
-
-  /**
-   * @typedef {Object} RepoInfo
-   * @property {string} owner - Repository owner
-   * @property {string} repo - Repository name
-   */
-  /**
-   * Extracts repository information from the current URL
-   * @returns {RepoInfo | null}
-   */
-  extractRepoInfo() {
-    const pathParts = window.location.pathname.split('/');
-    if (pathParts.length < 4) return null;
-
-    return {
-      owner: pathParts[1],
-      repo: pathParts[2],
-    };
   }
 
   /**
