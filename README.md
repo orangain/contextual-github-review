@@ -60,7 +60,7 @@ The extension consists of:
 - `content.js` - Main logic for detecting diffs and showing blame info
 - `background.js` - Service worker for handling extension lifecycle
 - `popup.{html|js}` - Settings interface
-- `styles.css` - Styling for blame information display
+- `content.css` - Styling for blame information display
 
 ## License
 

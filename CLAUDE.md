@@ -66,4 +66,4 @@ Since this is a Chrome extension with no build process:
 - **content.js**: Core blame viewing logic (GitHubBlameViewer class)
 - **background.js**: API communication and token management
 - **popup.html/js**: Settings interface
-- **styles.css**: Blame information styling with dark mode support
+- **content.css**: Blame information styling with dark mode support
