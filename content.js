@@ -193,6 +193,12 @@ class GitHubBlameViewer {
       action: 'fetch_blame_data',
       args: fileInfo,
     })
+
+    if (response.error || !response.data) {
+      console.error('Error fetching blame data:', response.error);
+      throw new Error(response.error);
+    }
+
     return response.data;
   }
 
