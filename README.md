@@ -2,6 +2,8 @@
 
 A Chrome extension that provides contextual information for GitHub Pull Requests.
 
+![Screenshot of the extension in action](docs/images/screenshot.png)
+
 ## Features
 
 - Shows commit information for the added lines in the diff view.
