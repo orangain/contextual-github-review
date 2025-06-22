@@ -29,10 +29,17 @@ class GitHubBlameViewer {
   }
 
   processTree(rootElement) {
+    if (!this.isPullRequestDiffPage()) {
+      return;
+    }
     const repoInfo = this.extractRepoInfo();
     const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
     fileContainers.forEach(container => this.processFileContainer(repoInfo, container));
+  }
+
+  isPullRequestDiffPage() {
+    return window.location.pathname.match(/^\/[^/]+\/[^/]+\/pull\/\d+\/files$/) !== null;
   }
 
   /**
