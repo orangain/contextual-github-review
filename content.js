@@ -14,10 +14,10 @@ class GitHubBlameViewer {
 
   setupObserver() {
     const observer = new MutationObserver((mutations) => {
+      console.log('DOM mutations detected:', mutations.length);
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            console.log('New node added:', node);
             this.processTree(node);
           }
         });
