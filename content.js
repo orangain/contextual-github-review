@@ -374,23 +374,23 @@ class GitHubBlameViewer {
 
   /**
    * Creates an element to display blame information.
-   * @param {LineBlame} blameInfo - The blame information for a specific line
+   * @param {LineBlame} lineBlame - The blame information for a specific line
    * @param {Commit | undefined} commit - The commit information, if available
    * @returns {HTMLElement} - The element containing blame information
    */
-  createBlameInfoElement(blameInfo, commit) {
+  createBlameInfoElement(lineBlame, commit) {
     const blameInfoElement = document.createElement('div');
     blameInfoElement.className = 'blame-info';
 
-    let title = `${blameInfo.messageHeadline}\nAuthor: ${blameInfo.author}\nDate: ${blameInfo.committedDate}`;
-    if (blameInfo.messageBody !== '') {
-      title += `\n\n${blameInfo.messageBody}`;
+    let title = `${lineBlame.messageHeadline}\nAuthor: ${lineBlame.author}\nDate: ${lineBlame.committedDate}`;
+    if (lineBlame.messageBody !== '') {
+      title += `\n\n${lineBlame.messageBody}`;
     }
     const commitLink = document.createElement('a');
-    commitLink.href = commit?.url ?? blameInfo.commitUrl;
+    commitLink.href = commit?.url ?? lineBlame.commitUrl;
     commitLink.target = '_blank';
     commitLink.title = title;
-    commitLink.textContent = blameInfo.messageHeadline;
+    commitLink.textContent = lineBlame.messageHeadline;
     blameInfoElement.appendChild(commitLink);
 
     return blameInfoElement
