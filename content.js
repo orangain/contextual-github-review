@@ -187,6 +187,9 @@ class GitHubBlameViewer {
       return this.#cachedCommitMap;
     }
 
+    // Note: DOM structure slightly differs in the following cases:
+    // - The pull request contains only one commit
+    // - The pull request contains two or more commits
     const commits = Array.from(document.querySelectorAll('.diffbar-range-menu div[data-range-url] a[data-commit]'))
       .map(a => {
         return {
@@ -201,7 +204,8 @@ class GitHubBlameViewer {
         commitsMap.set(oid, {
           oid,
           url,
-          age: i / Math.max(commits.length - 1, 1) // Normalize age to [0, 1] range
+          // Commits are ordered from the most recent to the oldest, so the first commit has age 0 and the last commit has age 1
+          age: i / Math.max(commits.length - 1, 1),
         })
       });
 
