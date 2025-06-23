@@ -50,6 +50,12 @@ class GitHubBlameViewer {
    */
   async processFileContainer(container) {
     console.log('Processing file container:', container);
+
+    if (container.querySelector('.blame-area')) {
+      console.log('Skipping container, blame area already exists');
+      return;
+    }
+
     const fileInfo = this.extractFileInfo(container);
     console.log('Extracted file info:', fileInfo);
 
