@@ -17,6 +17,7 @@ class GitHubBlameViewer {
       console.log('DOM mutations detected:', mutations.length);
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
+          // console.log('Added node:', node);
           if (node.nodeType === Node.ELEMENT_NODE) {
             this.processTree(node);
           }
@@ -36,6 +37,18 @@ class GitHubBlameViewer {
     }
     const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
+    if (fileContainers.length === 0) {
+      const diffTable = rootElement.querySelector('.diff-table');
+      if (diffTable !== null) {
+        // Assume that hidden diff table is loaded.
+        const fileElement = diffTable.closest('.file');
+        if (fileElement !== null) {
+          console.log('Found diff table without file container, using it:', fileElement);
+          this.processFileContainer(fileElement);
+          return;
+        }
+      }
+    }
     fileContainers.forEach(container => this.processFileContainer(container));
   }
 
