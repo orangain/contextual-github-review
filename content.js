@@ -40,7 +40,7 @@ class GitHubBlameViewer {
   }
 
   isPullRequestDiffPage() {
-    return window.location.pathname.match(/^\/[^/]+\/[^/]+\/pull\/\d+\/files$/) !== null;
+    return window.location.pathname.match(/^\/[^/]+\/[^/]+\/pull\/\d+\/files($|\/)/) !== null;
   }
 
   /**
