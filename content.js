@@ -111,6 +111,8 @@ class GitHubBlameViewer {
       return;
     }
 
+    const commitsMap = this.extractCommitsMap(fileInfo);
+
     console.log('Fetching blame data for:', fileInfo);
     const blameData = await this.fetchBlameDataWithCache(fileInfo);
     console.log('Fetched blame data:', blameData);
@@ -121,8 +123,10 @@ class GitHubBlameViewer {
     groupedAddedRows.forEach(rowsInGroup => {
       const { row, lineNumber, lineBlame } = rowsInGroup[0];
       const needsBorder = lastRowsInGroup !== null && lastRowsInGroup[lastRowsInGroup.length - 1].lineNumber + 1 === lineNumber;
+      const commit = commitsMap.get(lineBlame.oid); // Commit may be missing if the pull request contains too many commits
+      const commitAge = commit?.age ?? 1.0; // Consider the commit age as the oldest if not found
 
-      const blameArea = this.createBlameAreaElement(rowsInGroup.length, needsBorder);
+      const blameArea = this.createBlameAreaElement(rowsInGroup.length, needsBorder, commitAge);
 
       const blameInfoElement = this.createBlameInfoElement(lineBlame);
       blameArea.appendChild(blameInfoElement);
@@ -160,6 +164,50 @@ class GitHubBlameViewer {
       commitRef: blobLinkMatch[3],
       fileName: blobLinkMatch[4],
     }
+  }
+
+  /**
+   * @typedef {Object} Commit
+   * @property {string} oid - Commit SHA
+   * @property {string} url - URL to the commit
+   * @property {number} age - Age of the commit in the context of the pull request. 0 is the most recent commit, 1 is the oldest.
+   */
+
+  #cachedCommitMap = null;
+  #cacheKeyForCommitMap = null;
+  /**
+   * Extracts commits map from the current page.
+   * @param {FileInfo} fileInfo - Information about the file to extract commits for
+   * @returns {Map<string, Commit>} - Map of commit SHA to commit information
+   */
+  extractCommitsMap(fileInfo) {
+    const cacheKey = `${fileInfo.owner}/${fileInfo.repo}/${fileInfo.commitRef}`;
+    if (this.#cachedCommitMap !== null && this.#cacheKeyForCommitMap === cacheKey) {
+      console.log('Using cached commits for:', cacheKey);
+      return this.#cachedCommitMap;
+    }
+
+    const commits = Array.from(document.querySelectorAll('.diffbar-range-menu div[data-range-url] a[data-commit]'))
+      .map(a => {
+        return {
+          oid: a.dataset.commit,
+          url: a.href,
+        }
+      });
+    console.log('Extracted commits:', commits.length, 'for file:', cacheKey);
+    const commitsMap = new Map();
+    commits
+      .forEach(({ oid, url }, i) => {
+        commitsMap.set(oid, {
+          oid,
+          url,
+          age: i / Math.max(commits.length - 1, 1) // Normalize age to [0, 1] range
+        })
+      });
+
+    this.#cachedCommitMap = commitsMap;
+    this.#cacheKeyForCommitMap = cacheKey;
+    return this.#cachedCommitMap;
   }
 
   /**
@@ -235,6 +283,7 @@ class GitHubBlameViewer {
 
   /**
    * @typedef {Object} LineBlame
+   * @property {string} oid - Commit SHA
    * @property {string} author - Commit author
    * @property {string} messageHeadline - Commit message headline
    * @property {string} messageBody - Commit message body
@@ -257,6 +306,7 @@ class GitHubBlameViewer {
     const range = targetRanges[0];
 
     return {
+      oid: range.commit.oid,
       author: range.commit.author.name,
       messageHeadline: range.commit.messageHeadline,
       messageBody: range.commit.messageBody,
@@ -265,14 +315,61 @@ class GitHubBlameViewer {
     };
   }
 
-  createBlameAreaElement(rowSpan, needsBorder) {
+  /**
+   * Creates an element to display the blame area.
+   * @param {number} rowSpan - The number of rows this blame area should span
+   * @param {boolean} needsBorder - Whether the blame area needs a border to separate it from the previous group
+   * @param {number} age - The age of the commit in the range [0, 1], where 0 is the most recent commit and 1 is the oldest.
+   * @returns {HTMLElement} - The created blame area element
+   */
+  createBlameAreaElement(rowSpan, needsBorder, age) {
     const blameArea = document.createElement('td');
     blameArea.className = 'blame-area';
     if (needsBorder) {
       blameArea.classList.add('next-to-previous-group');
     }
     blameArea.setAttribute('rowspan', rowSpan);
+    blameArea.style.borderLeft = `0.25rem solid ${this.getGradientColorForAge(age)}`;
     return blameArea;
+  }
+
+  /**
+   * Gets a gradient color based on the age of the commit.
+   * @param {number} age - Age of the commit in the range [0, 1], where 0 is the most recent commit and 1 is the oldest.
+   * @returns {string} - RGB color string representing the gradient color for the given age
+   */
+  getGradientColorForAge(age) {
+    const colors = [
+      [61, 19, 0], // Darkest color for the most recent commit
+      [90, 30, 2],
+      [118, 45, 10],
+      [155, 66, 21],
+      [189, 86, 29],
+      [219, 109, 40],
+      [240, 136, 62],
+      [255, 198, 128],
+      [255, 223, 182], // Lightest color for the oldest commit
+    ];
+
+    // tを0〜1に制限
+    const t = Math.max(0, Math.min(1, age));
+
+    const scaled = t * (colors.length - 1);
+    const i = Math.floor(scaled);
+    const frac = scaled - i;
+
+    if (i >= colors.length - 1) {
+      return `rgb(${colors[colors.length - 1].join(',')})`;
+    }
+
+    const c0 = colors[i];
+    const c1 = colors[i + 1];
+
+    const r = Math.round(c0[0] + (c1[0] - c0[0]) * frac);
+    const g = Math.round(c0[1] + (c1[1] - c0[1]) * frac);
+    const b = Math.round(c0[2] + (c1[2] - c0[2]) * frac);
+
+    return `rgb(${r}, ${g}, ${b})`;
   }
 
   createBlameInfoElement(blameInfo) {
