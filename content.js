@@ -128,7 +128,7 @@ class GitHubBlameViewer {
 
       const blameArea = this.createBlameAreaElement(rowsInGroup.length, needsBorder, commitAge);
 
-      const blameInfoElement = this.createBlameInfoElement(lineBlame);
+      const blameInfoElement = this.createBlameInfoElement(lineBlame, commit);
       blameArea.appendChild(blameInfoElement);
 
       this.addBlameArea(row, blameArea);
@@ -372,7 +372,13 @@ class GitHubBlameViewer {
     return `rgb(${r}, ${g}, ${b})`;
   }
 
-  createBlameInfoElement(blameInfo) {
+  /**
+   * Creates an element to display blame information.
+   * @param {LineBlame} blameInfo - The blame information for a specific line
+   * @param {Commit | undefined} commit - The commit information, if available
+   * @returns {HTMLElement} - The element containing blame information
+   */
+  createBlameInfoElement(blameInfo, commit) {
     const blameInfoElement = document.createElement('div');
     blameInfoElement.className = 'blame-info';
 
@@ -381,7 +387,7 @@ class GitHubBlameViewer {
       title += `\n\n${blameInfo.messageBody}`;
     }
     const commitLink = document.createElement('a');
-    commitLink.href = blameInfo.commitUrl;
+    commitLink.href = commit?.url ?? blameInfo.commitUrl;
     commitLink.target = '_blank';
     commitLink.title = title;
     commitLink.textContent = blameInfo.messageHeadline;
