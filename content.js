@@ -1,4 +1,5 @@
 const viewFileLinkRegExp = RegExp(`^/([^/]+)/([^/]+)/blob/([0-9a-f]{40})/(.*)$`);
+const pullRequestDiffPageRegExp = RegExp(`^(/[^/]+/[^/]+/pull/\\d+)/files($|/)`);
 
 class GitHubBlameViewer {
   constructor() {
@@ -32,9 +33,13 @@ class GitHubBlameViewer {
   }
 
   processTree(rootElement) {
-    if (!this.isPullRequestDiffPage()) {
-      return;
+    const match = window.location.pathname.match(pullRequestDiffPageRegExp);
+    if (!match) {
+      return; // Not a pull request diff page
     }
+    const pullRequestPath = match[1];
+    this.showConversationButton(rootElement, pullRequestPath);
+
     const fileContainers = rootElement.querySelectorAll('.file');
     console.log('Found file containers:', fileContainers.length);
     if (fileContainers.length === 0) {
@@ -52,8 +57,51 @@ class GitHubBlameViewer {
     fileContainers.forEach(container => this.processFileContainer(container));
   }
 
-  isPullRequestDiffPage() {
-    return window.location.pathname.match(/^\/[^/]+\/[^/]+\/pull\/\d+\/files($|\/)/) !== null;
+  showConversationButton(rootElement, pullRequestPath) {
+    const diffBar = rootElement.querySelector('.diffbar');
+    if (!diffBar) {
+      return; // No diff bar found.
+    }
+    if (diffBar.querySelector('.cgr-convertation-button') !== null) {
+      return; // Button already exists
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.popover = "auto";
+    iframe.style.inset = 'unset';
+    iframe.style.width = '49vw';
+    iframe.style.height = '90vh';
+    iframe.style.left = '1vw';
+    iframe.style.top = '8vh';
+
+    const discussionIcon = document.querySelector('svg.octicon-comment-discussion').cloneNode(true);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cgr-convertation-button btn-octicon m-0 p-0 Link--muted';
+    button.title = 'Show conversation';
+    button.popoverTargetElement = iframe;
+    button.appendChild(discussionIcon);
+
+    const rangeMenu = diffBar.querySelector('.diffbar-range-menu');
+    rangeMenu.parentNode.insertBefore(button, rangeMenu);
+    rangeMenu.parentNode.appendChild(iframe);
+
+    fetch(pullRequestPath)
+      .then(response => response.text())
+      .then(html => {
+        console.log('Fetched content for iframe:', pullRequestPath);
+        iframe.addEventListener('load', () => {
+          console.log('Iframe loaded');
+          const targetElement = iframe.contentDocument.querySelector('.pull-discussion-timeline .js-discussion');
+          iframe.contentDocument.body.innerHTML = ''; // Clear the body to avoid displaying the entire HTML
+          iframe.contentDocument.body.appendChild(targetElement);
+        });
+        iframe.srcdoc = html;
+      })
+      .catch(error => {
+        console.error('Error fetching content:', error);
+      });
   }
 
   /**
