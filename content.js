@@ -91,7 +91,7 @@ class GitHubBlameViewer {
     const cols = colGroup.querySelectorAll('col');
     if (cols.length === 4) {
       const blameCol = document.createElement('col');
-      blameCol.setAttribute('width', '170');
+      blameCol.setAttribute('width', '15%');
       colGroup.appendChild(blameCol); // Add a new column for blame info
     }
 
