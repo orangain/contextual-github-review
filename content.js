@@ -204,8 +204,8 @@ class GitHubBlameViewer {
         commitsMap.set(oid, {
           oid,
           url,
-          // Commits are ordered from the most recent to the oldest, so the first commit has age 0 and the last commit has age 1
-          age: i / Math.max(commits.length - 1, 1),
+          // Commits are ordered from the oldest to the most recent, so we can calculate age based on the index
+          age: (commits.length - 1 - i) / Math.max(commits.length - 1, 1),
         })
       });
 
