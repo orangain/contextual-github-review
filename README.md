@@ -8,6 +8,8 @@ A Chrome extension that provides contextual information for GitHub Pull Requests
 
 - Shows commit information for the added lines in the diff view.
   - This helps reviewers understand the history and context of changes without needing to switch tabs or look up commits separately.
+- Adds a "Conversations" button to the diff view.
+  - This button allows users to quickly view the pull request description and comments in the popover without leaving the diff view.
 
 ## Installation
 
