@@ -1,3 +1,11 @@
+[data-lock-side-selection] .blame-area {
+  /* 
+  Prevents text selection in the blame area when the left or right side is selected.
+  The `data-lock-side-selection` attribute is controlled by the JavaScript code of GitHub.
+  */
+  user-select: none;
+}
+
 .blame-area {
   padding-left: 8px;
   padding-right: 8px;
