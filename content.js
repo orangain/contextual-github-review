@@ -440,6 +440,18 @@ class ConversationsButton {
     iframe.style.left = '1vw';
     iframe.style.top = '8vh';
 
+    let savedScrollTop = 0;
+    iframe.addEventListener('beforetoggle', (event) => {
+      if (event.newState === 'closed') {
+        savedScrollTop = iframe.contentWindow.scrollY;
+      }
+    });
+    iframe.addEventListener('toggle', (event) => {
+      if (event.newState === 'open') {
+        iframe.contentWindow.scrollTo(0, savedScrollTop);
+      }
+    });
+
     const discussionIcon = document.querySelector('svg.octicon-comment-discussion').cloneNode(true);
 
     const button = document.createElement('button');
