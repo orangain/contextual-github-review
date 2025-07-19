@@ -90,7 +90,7 @@ class BlameViewer {
       return;
     }
 
-    const diffTable = container.querySelector('.diff-table');
+    const diffTable = container.querySelector('.js-file-content .diff-table'); // .js-file-content is needed because file-level comment elments have the diff-table class.
     if (!diffTable) {
       console.warn('No diff table found in container:', container);
       return;
